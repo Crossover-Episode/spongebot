@@ -84,10 +84,7 @@ func ToSpongebobText(s string, startCapital bool) string {
 	toCapitol := startCapital
 	var sbString string
 	for _, v := range s {
-		if v > unicode.MaxASCII {
-			return s
-		}
-		if isLower(v) || isUpper(v) {
+		if (isLower(v) || isUpper(v)) &&  v <= unicode.MaxASCII {
 			if toCapitol && isLower(v) {
 				sbString += string(v + caseDelta)
 			} else if !toCapitol && isUpper(v) {
