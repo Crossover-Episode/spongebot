@@ -22,7 +22,10 @@ const replyError = "oH nO! sOmEtHiNg WeNt WrOnG! tRy AgAiN lAtEr."
 func (h *Handler) OnMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	//check if message
 	if m.Type == discordgo.MessageTypeReply && m.MessageReference != nil {
-		h.replySpongebobText(s, m)
+		err := h.replySpongebobText(s, m)
+		if err != nil {
+			log.Println(err.Error())
+		}
 	}
 }
 
@@ -33,7 +36,7 @@ func (h *Handler) replySpongebobText(s *discordgo.Session, m *discordgo.MessageC
 
 	refMsg, err := s.ChannelMessage(m.MessageReference.ChannelID, m.MessageReference.MessageID)
 	if err != nil {
-		s.ChannelMessageSendReply(m.MessageReference.ChannelID, replyError, m.MessageReference)
+		_, _ = s.ChannelMessageSendReply(m.MessageReference.ChannelID, replyError, m.MessageReference)
 		return err
 	}
 	

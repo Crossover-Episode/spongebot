@@ -55,7 +55,7 @@ func (m *MemeGenerator) GenerateMeme(text string) (*bytes.Buffer, error) {
 		return nil, err
 	}
 
-	return prepMeme(meme), nil
+	return prepMeme(meme)
 }
 
 func (m *MemeGenerator) addTextToImage(img image.Image, text string) (image.Image, error) {
@@ -106,14 +106,14 @@ func (m *MemeGenerator) LoadFontFace(points float64) font.Face {
 	return face
 }
 
-func prepMeme(meme image.Image) *bytes.Buffer {
+func prepMeme(meme image.Image) (*bytes.Buffer, error) {
 	var buff bytes.Buffer
 	jpegOpts := &jpeg.Options{
 		Quality: 80,
 	}
-	jpeg.Encode(&buff, meme, jpegOpts)
+	err := jpeg.Encode(&buff, meme, jpegOpts)
 
-	return &buff
+	return &buff, err
 }
 
 
