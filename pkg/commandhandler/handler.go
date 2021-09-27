@@ -1,7 +1,6 @@
 package commandhandler
 
 import (
-	"bytes"
 	"log"
 	"strings"
 
@@ -19,47 +18,61 @@ func NewHandler(memeGenerator *spongebob.MemeGenerator) *Handler {
 
 const replyError = "oH nO! sOmEtHiNg WeNt WrOnG! tRy AgAiN lAtEr."
 
+const usage = "to return a text only message, @ this bot in a reply. To return a meme, add **--meme** when you mention the bot."
+
 func (h *Handler) OnMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	//check if message
+	if !mentionsContainsUser(m.Mentions, s.State.User.ID) {
+		return
+	}
+
 	if m.Type == discordgo.MessageTypeReply && m.MessageReference != nil {
-		err := h.replySpongebobText(s, m)
+		msgRef, err := s.ChannelMessage(m.MessageReference.ChannelID, m.MessageReference.MessageID)
+		if err != nil {
+			_, _ = s.ChannelMessageSendReply(m.MessageReference.ChannelID, replyError, m.MessageReference)
+			log.Println(err.Error())
+		}
+
+		if msgRef.Author.ID == s.State.User.ID {
+			return
+		}
+
+		contentWithUsernames := replaceUserIdsWithNames(msgRef.Mentions, msgRef.Content)
+
+		if strings.Contains(m.Content, "--meme") {
+			err = h.replySpongebobMeme(s, m.MessageReference, contentWithUsernames)
+		} else {
+			err = h.replySpongebobText(s, m.MessageReference, contentWithUsernames)
+		}
 		if err != nil {
 			log.Println(err.Error())
 		}
+	} else {
+		_, _ = s.ChannelMessageSendReply(m.ChannelID, usage, m.Reference())
 	}
 }
 
-func (h *Handler) replySpongebobText(s *discordgo.Session, m *discordgo.MessageCreate) error {
-	if !mentionsContainsUser(m.Mentions, s.State.User.ID) {
-		return nil
-	}
+func (h *Handler) replySpongebobText(s *discordgo.Session, msgRef *discordgo.MessageReference, content string) error {
+	_, err := s.ChannelMessageSendReply(msgRef.ChannelID, spongebob.ToText(content, false), msgRef)
+	return err
+}
 
-	refMsg, err := s.ChannelMessage(m.MessageReference.ChannelID, m.MessageReference.MessageID)
+func (h *Handler) replySpongebobMeme(s *discordgo.Session, msgRef *discordgo.MessageReference, content string) error {
+	memeBuffer, err := h.memeGenerator.GenerateMeme(content)
 	if err != nil {
-		_, _ = s.ChannelMessageSendReply(m.MessageReference.ChannelID, replyError, m.MessageReference)
-		return err
+		_, _ = s.ChannelMessageSendReply(msgRef.ChannelID, replyError, msgRef)
+		log.Println("Failed to create meme")
 	}
-	
-	if refMsg.Author.ID != s.State.User.ID {
-		contentWithUsernames := replaceUserIdsWithNames(refMsg.Mentions, refMsg.Content)
-		
-		var memeBuffer *bytes.Buffer
-		memeBuffer, err = h.memeGenerator.GenerateMeme(contentWithUsernames)
-		if err != nil {
-			_, _ = s.ChannelMessageSendReply(m.MessageReference.ChannelID, replyError, m.MessageReference)
-			log.Println("Failed to create meme")
-		}
 
-		msgWithMeme := &discordgo.MessageSend{
-			File: &discordgo.File{
-				Name:        makeFileName(refMsg.Content),
-				ContentType: "image/jpeg",
-				Reader:      memeBuffer,
-			},
-			Reference: m.MessageReference,
-		}
-		_, err = s.ChannelMessageSendComplex(m.MessageReference.ChannelID, msgWithMeme)
+	msgWithMeme := &discordgo.MessageSend{
+		File: &discordgo.File{
+			Name:        makeFileName(content),
+			ContentType: "image/jpeg",
+			Reader:      memeBuffer,
+		},
+		Reference: msgRef,
 	}
+	_, err = s.ChannelMessageSendComplex(msgRef.ChannelID, msgWithMeme)
+
 	return err
 }
 
