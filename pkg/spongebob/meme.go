@@ -17,7 +17,7 @@ type MemeGenerator struct {
 }
 
 const (
-	maxLength = 930
+	maxLength = 940 //For TGM
 )
 
 //go:embed imgs/meme.jpg

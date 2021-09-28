@@ -16,9 +16,11 @@ func NewHandler(memeGenerator *spongebob.MemeGenerator) *Handler {
 	return &Handler{memeGenerator: memeGenerator}
 }
 
-const replyError = "oH nO! sOmEtHiNg WeNt WrOnG! tRy AgAiN lAtEr."
-
-const usage = "to return a text only message, @ this bot in a reply. To return a meme, add **--meme** when you mention the bot."
+const (
+	replyError = "oH nO! sOmEtHiNg WeNt WrOnG! tRy AgAiN lAtEr."
+	usage      = "to return a text only message, @ this bot in a reply. To return a meme, add **--meme** when you mention the bot."
+	helpReminder = "to get the usage for this bot, @ it in a channel."
+)
 
 func (h *Handler) OnMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if !mentionsContainsUser(m.Mentions, s.State.User.ID) {
@@ -36,25 +38,35 @@ func (h *Handler) OnMessageCreate(s *discordgo.Session, m *discordgo.MessageCrea
 			return
 		}
 
-		contentWithUsernames := replaceUserIdsWithNames(msgRef.Mentions, msgRef.Content)
+		contentWithUserNames, err := msgRef.ContentWithMoreMentionsReplaced(s)
+		if err != nil {
+			log.Println(err.Error())
+			return
+		}
 
 		if strings.Contains(m.Content, "--meme") {
-			err = h.replySpongebobMeme(s, m.MessageReference, contentWithUsernames)
+			err = h.replySpongebobMeme(s, m.MessageReference, contentWithUserNames)
 		} else {
-			err = h.replySpongebobText(s, m.MessageReference, contentWithUsernames)
+			err = h.replySpongebobText(s, m.MessageReference, contentWithUserNames)
 		}
 		if err != nil {
 			log.Println(err.Error())
 		}
 	} else {
-		_, _ = s.ChannelMessageSendReply(m.ChannelID, usage, m.Reference())
+		err := h.directMessageUsage(s, m)
+		if err != nil {
+			log.Println(err.Error())
+		}
 	}
 }
 
+
 func (h *Handler) replySpongebobText(s *discordgo.Session, msgRef *discordgo.MessageReference, content string) error {
-	_, err := s.ChannelMessageSendReply(msgRef.ChannelID, spongebob.ToText(content, false), msgRef)
+	spongebobText := spongebob.ToText(content, false) + "\n\n" + helpReminder
+	_, err := s.ChannelMessageSendReply(msgRef.ChannelID, spongebobText, msgRef)
 	return err
 }
+
 
 func (h *Handler) replySpongebobMeme(s *discordgo.Session, msgRef *discordgo.MessageReference, content string) error {
 	memeBuffer, err := h.memeGenerator.GenerateMeme(content)
@@ -70,11 +82,24 @@ func (h *Handler) replySpongebobMeme(s *discordgo.Session, msgRef *discordgo.Mes
 			Reader:      memeBuffer,
 		},
 		Reference: msgRef,
+		Content: helpReminder,
 	}
 	_, err = s.ChannelMessageSendComplex(msgRef.ChannelID, msgWithMeme)
 
 	return err
 }
+
+
+func (h *Handler) directMessageUsage(s *discordgo.Session, m *discordgo.MessageCreate) error {
+	directMsgChannel, err := s.UserChannelCreate(m.Author.ID)
+	if err != nil {
+		_, _ = s.ChannelMessageSendReply(m.ChannelID, usage, m.Reference()) //on failed dm, send as reply in original channel
+		return err
+	}
+	_, _ = s.ChannelMessageSend(directMsgChannel.ID, usage)
+	return nil
+}
+
 
 const fileNameMaxLength = 20
 
@@ -85,12 +110,6 @@ func makeFileName(content string) string {
 	return spongebob.ToText(content, false) + ".jpg"
 }
 
-func replaceUserIdsWithNames(users []*discordgo.User, content string) string {
-	for _, user := range users {
-		content = strings.ReplaceAll(content, "<@!"+user.ID+">", "@"+user.Username)
-	}
-	return content
-}
 
 func mentionsContainsUser(users []*discordgo.User, value string) bool {
 	for _, v := range users {

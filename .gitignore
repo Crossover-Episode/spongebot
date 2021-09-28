@@ -15,5 +15,5 @@
 .idea
 
 #I'm lazy
-token 
+token* 
 build.sh
