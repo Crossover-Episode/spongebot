@@ -13,11 +13,11 @@ import (
 
 type MemeGenerator struct {
 	spongebobImg image.Image
-	font *truetype.Font
+	font         *truetype.Font
 }
 
 const (
-	maxLength = 940 //For TGM
+	maxLength = 540
 )
 
 //go:embed imgs/meme.jpg
@@ -36,19 +36,16 @@ func NewGenerator() (*MemeGenerator, error) {
 	if err != nil {
 		return nil, err
 	}
-	
-	generator := &MemeGenerator{
-		font: font,
-		spongebobImg: img,
 
+	generator := &MemeGenerator{
+		font:         font,
+		spongebobImg: img,
 	}
 
 	return generator, nil
 }
 
-
-
-func (m *MemeGenerator) GenerateMeme(text string) (*bytes.Buffer, error) {	
+func (m *MemeGenerator) GenerateMeme(text string) (*bytes.Buffer, error) {
 	spongebobText := ToText(text, false)
 	meme, err := m.addTextToImage(m.spongebobImg, spongebobText)
 	if err != nil {
@@ -69,7 +66,7 @@ func (m *MemeGenerator) addTextToImage(img image.Image, text string) (image.Imag
 	dc.SetFontFace(m.LoadFontFace(fontSize))
 
 	dc.SetRGB(0, 0, 0)
-	n := 4 // "stroke" size - increase this if you wanna watch the bot struggle
+	n := m.strokeSizeForLength(len(text))
 	for dy := -n; dy <= n; dy++ {
 		for dx := -n; dx <= n; dx++ {
 			if dx*dx+dy*dy >= n*n {
@@ -78,25 +75,39 @@ func (m *MemeGenerator) addTextToImage(img image.Image, text string) (image.Imag
 			}
 			x := float64(dc.Width())/2 + float64(dx)
 			y := float64(dc.Height())/2 + float64(dy)
-			dc.DrawStringWrapped(text, x, y, 0.5, 0.5, float64(dc.Width())-100.0, lineSpacing, gg.AlignCenter) //doing this at O(n^2) = horribly bad performance
+			dc.DrawStringWrapped(text, x, y, 0.5, 0.5, float64(dc.Width())-100.0, lineSpacing, gg.AlignCenter)
 		}
 	}
 
 	dc.SetRGB(1, 1, 1)
 	dc.DrawStringWrapped(text, float64(dc.Width())/2, float64(dc.Height())/2, 0.5, 0.5, float64(dc.Width())-100.0, lineSpacing, gg.AlignCenter)
+
 	return dc.Image(), nil
+}
+
+const (
+	maxStroke = 4
+	minStroke = 2
+)
+
+//returns a number [minStroke, maxStroke] mapped as length goes from maxLength
+//to 0.
+func (m *MemeGenerator) strokeSizeForLength(length int) int {
+	return maxStroke - int(float64(length)/(maxLength+1)*(maxStroke-minStroke+1)+minStroke) + minStroke
 }
 
 //I don't like this, but I won't put in more time to make something more elegant
 func (m *MemeGenerator) fontAndLineSpacingForLength(length int) (float64, float64) {
-	if length < 100 {
-		return 150, 3
+	if length < 50 {
+		return 70, 2.5
+	} else if length < 100 {
+		return 40, 2.25
+	} else if length < 200 {
+		return 30, 2
 	} else if length < 400 {
-		return 125, 3
-	} else if length < 700 {
-		return 100, 2
+		return 25, 1.75
 	}
-	return 75, 1
+	return 20, 1.5
 }
 
 func (m *MemeGenerator) LoadFontFace(points float64) font.Face {
@@ -115,5 +126,3 @@ func prepMeme(meme image.Image) (*bytes.Buffer, error) {
 
 	return &buff, err
 }
-
-
