@@ -37,7 +37,17 @@ func main() {
 	}
 
 	log.Println("Bot is now running. Press CTRL-C to exit.")
-	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
-	<-sc
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+
+	<-stop
+	log.Println("Shutting down gracefully")
+
+	// terminate after second signal before callback is done
+	go func() {
+		<-stop
+		log.Fatal("Aborting")
+	}()
+
+	botSession.Close()
 }
