@@ -19,8 +19,6 @@ func main() {
 		panic(err.Error())
 	}
 
-	handler := commandhandler.NewHandler(generator)
-
 	if len(os.Args) != 2 {
 		log.Fatalln("failed to supply bot token")
 	}
@@ -29,8 +27,9 @@ func main() {
 	if err != nil {
 		log.Fatalln("error creating bot session: " + err.Error())
 	}
-
-	botSession.AddHandler(handler.OnMessageCreate)
+	
+	handler := commandhandler.NewHandler(generator)
+	handler.RegisterCommandHandler(botSession)
 
 	err = botSession.Open()
 	if err != nil {
