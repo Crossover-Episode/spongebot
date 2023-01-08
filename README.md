@@ -6,7 +6,7 @@ Spongebot is a small discord bot written in [Go] that creates "Spongebob" memes 
 
 Clone repo.
 ```bash
-git clone https://github.com/davidparks11/spongebot.git
+git clone https://github.com/crossoverepisode/spongebot.git
 ```
 
 Change dir into cloned repo and build the bot with docker.

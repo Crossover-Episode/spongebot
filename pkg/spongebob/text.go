@@ -1,6 +1,9 @@
 package spongebob
 
-import "unicode"
+import (
+	"strings"
+	"unicode"
+)
 
 const (
 	firstCapital = 65
@@ -9,6 +12,14 @@ const (
 	lastLower    = 122
 	caseDelta    = firstCapital - firstLower
 )
+
+//StripText removes tabs, and line breaks
+func StripText(s string) string {
+	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.ReplaceAll(s, "\n", "")
+	s = strings.ReplaceAll(s, "\t", "")
+	return s
+}
 
 func ToText(s string, startCapital bool) string {
 	isLower := func(char int32) bool {

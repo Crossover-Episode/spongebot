@@ -5,7 +5,7 @@ import (
 	_ "embed"
 	"image"
 	"image/jpeg"
-
+	
 	"github.com/fogleman/gg"
 	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
@@ -56,6 +56,7 @@ func (m *MemeGenerator) GenerateMeme(text string) (*bytes.Buffer, error) {
 }
 
 func (m *MemeGenerator) addTextToImage(img image.Image, text string) (image.Image, error) {
+	text = StripText(text)
 	if len(text) > maxLength {
 		text = text[:maxLength-3] + "..."
 	}
@@ -66,48 +67,36 @@ func (m *MemeGenerator) addTextToImage(img image.Image, text string) (image.Imag
 	dc.SetFontFace(m.LoadFontFace(fontSize))
 
 	dc.SetRGB(0, 0, 0)
-	n := m.strokeSizeForLength(len(text))
-	for dy := -n; dy <= n; dy++ {
-		for dx := -n; dx <= n; dx++ {
-			if dx*dx+dy*dy >= n*n {
-				// give it rounded corners
-				continue
-			}
-			x := float64(dc.Width())/2 + float64(dx)
-			y := float64(dc.Height())/2 + float64(dy)
-			dc.DrawStringWrapped(text, x, y, 0.5, 0.5, float64(dc.Width())-100.0, lineSpacing, gg.AlignCenter)
-		}
-	}
+
+	y := float64(dc.Height())/2
+	x := float64(dc.Width())/2
+	
+	//black outline
+	dc.DrawStringWrapped(text, x+1, y, 0.5, 0.5, float64(dc.Width())-100.0, lineSpacing, gg.AlignCenter)
+	dc.DrawStringWrapped(text, x-1, y, 0.5, 0.5, float64(dc.Width())-100.0, lineSpacing, gg.AlignCenter)
+	dc.DrawStringWrapped(text, x, y+1, 0.5, 0.5, float64(dc.Width())-100.0, lineSpacing, gg.AlignCenter)
+	dc.DrawStringWrapped(text, x, y-1, 0.5, 0.5, float64(dc.Width())-100.0, lineSpacing, gg.AlignCenter)
 
 	dc.SetRGB(1, 1, 1)
-	dc.DrawStringWrapped(text, float64(dc.Width())/2, float64(dc.Height())/2, 0.5, 0.5, float64(dc.Width())-100.0, lineSpacing, gg.AlignCenter)
+	dc.DrawStringWrapped(text, x, y, 0.5, 0.5, float64(dc.Width())-100.0, lineSpacing, gg.AlignCenter)
 
 	return dc.Image(), nil
 }
 
-const (
-	maxStroke = 4
-	minStroke = 2
-)
-
-//returns a number [minStroke, maxStroke] mapped as length goes from maxLength
-//to 0.
-func (m *MemeGenerator) strokeSizeForLength(length int) int {
-	return maxStroke - int(float64(length)/(maxLength+1)*(maxStroke-minStroke+1)+minStroke) + minStroke
-}
-
-//I don't like this, but I won't put in more time to make something more elegant
+// I don't like this, but I won't put in more time to make something more elegant
 func (m *MemeGenerator) fontAndLineSpacingForLength(length int) (float64, float64) {
-	if length < 50 {
+	if length < 20 {
 		return 70, 2.5
+	} else if length < 50 {
+		return 60, 2
 	} else if length < 100 {
-		return 40, 2.25
+		return 40, 2
 	} else if length < 200 {
-		return 30, 2
+		return 30, 1.75
 	} else if length < 400 {
-		return 25, 1.75
+		return 25, 1.25
 	}
-	return 20, 1.5
+	return 20, 1.25
 }
 
 func (m *MemeGenerator) LoadFontFace(points float64) font.Face {

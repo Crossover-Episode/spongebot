@@ -7,14 +7,14 @@ import (
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/davidparks11/spongebot/pkg/commandhandler"
-	
-	"github.com/davidparks11/spongebot/pkg/spongebob"
+	"github.com/crossoverepisode/spongebot/pkg/commandhandler"
+
+	"github.com/crossoverepisode/spongebot/pkg/spongebob"
 )
 
 func main() {
 
-	generator, err:= spongebob.NewGenerator()
+	generator, err := spongebob.NewGenerator()
 	if err != nil {
 		panic(err.Error())
 	}

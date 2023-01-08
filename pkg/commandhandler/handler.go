@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/davidparks11/spongebot/pkg/spongebob"
+	"github.com/crossoverepisode/spongebot/pkg/spongebob"
 )
 
 type Handler struct {
