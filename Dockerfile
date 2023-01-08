@@ -1,4 +1,4 @@
-FROM golang:1.16-alpine AS build
+FROM golang:1.18-alpine AS build
 
 WORKDIR /app
 
@@ -8,9 +8,9 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o /spongebot ./cmd/main.go
+RUN go build -o /spongebot ./main.go
 
-FROM golang:1.16-alpine
+FROM golang:1.18-alpine
 
 RUN apk --no-cache add ca-certificates
 
